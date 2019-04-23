@@ -28,13 +28,13 @@ public class App {
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("Twitter-to-SQL", config, builder.createTopology());
 
-        try {
-            //how long to run topology - set to 30 secs
-            Thread.sleep(10000);
-        } catch (Exception e) {
-            System.out.println("ouch");
-        }
-        //shutdown the topology
-        cluster.shutdown();
+        // try {
+        //     //how long to run topology - set to 30 secs
+        //     Thread.sleep(10000);
+        // } catch (Exception e) {
+        //     System.out.println("ouch");
+        // }
+        // //shutdown the topology
+        // cluster.shutdown();
     }
 }
