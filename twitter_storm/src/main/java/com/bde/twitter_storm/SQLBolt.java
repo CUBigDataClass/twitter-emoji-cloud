@@ -1,8 +1,5 @@
 package com.bde.twitter_storm;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
@@ -11,12 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.mysql.cj.jdbc.JdbcPreparedStatement;
-import com.mysql.cj.xdevapi.Result;
-import com.google.protobuf.TextFormat.ParseException;
-import com.mysql.*;
-import java.sql.Statement;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
@@ -25,21 +17,24 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Tuple;
 
 public class SQLBolt extends BaseRichBolt {
+    SQLConnect sql;
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-
+        sql = new SQLConnect();
     }
 
     @Override
     public void execute(Tuple input) {
-        String entityName = input.getStringByField("entityName");
-        String wikiUrl = input.getStringByField("wikiURL");
-        String imageUrl = input.getStringByField("wikiImageURL");
-        String twitterID = input.getStringByField("tweetID");
-        Date tweetDate = (Date) input.getValueByField("tweetCreatedAt");
-        int entityID = insertEntity(entityName, wikiUrl, imageUrl);
-        insertTweet(twitterID, entityID, tweetDate);
+        Date createdAt = (Date) input.getValueByField("tweet_created_at");
+        String twitterId = input.getStringByField("tweet_id");
+        String tweetText = input.getStringByField("tweet_text");
+        String emojiUnicode = input.getStringByField("emoji_unicode");
+        String emojiName = input.getStringByField("emoji_name");
+        String emojiDescription = input.getStringByField("emoji_description");
+        String emojiHtmlHex = input.getStringByField("emoji_html_hex");
+        insertEmoji(emojiUnicode, emojiName, emojiDescription, emojiHtmlHex);
+        insertTweet(twitterId, tweetText, emojiUnicode, createdAt);
     }
 
     @Override
@@ -47,45 +42,41 @@ public class SQLBolt extends BaseRichBolt {
 
     }
 
-    public void insertTweet(String twitterID, int entityID, Date date) {
+    public void insertTweet(String twitterID, String text, String emojiId, Date date) {
         try {
-            SQLConnect.insertTweetStatement.setString(1, twitterID);
-            SQLConnect.insertTweetStatement.setInt(2, entityID);
-            SQLConnect.insertTweetStatement.setTimestamp(3, new Timestamp(date.getTime()));
-            SQLConnect.insertTweetStatement.executeUpdate();
+            sql.insertTweetStatement.setString(1, twitterID);
+            sql.insertTweetStatement.setString(2, text);
+            sql.insertTweetStatement.setString(3, emojiId);
+            sql.insertTweetStatement.setTimestamp(4, new Timestamp(date.getTime()));
+            sql.insertTweetStatement.executeUpdate();
             System.out.println("Great success inserting tweet!");
         } catch(SQLException e) {
-            System.out.println("ERROR SQLing");
+            System.out.println(e);
+            System.out.println("ERROR INSERTING TWEET");
         }
     }
 
-    public int insertEntity(String entityName, String wikiUrl, String imageUrl) {
+    // returns emoji row key
+    public void insertEmoji(String unicodeId, String name, String desc, String hex) {
 
         try {
-            SQLConnect.selectEntityStatement.setString(1, entityName);
-            ResultSet rs = SQLConnect.selectEntityStatement.executeQuery();
+            sql.selectEmojiStatement.setString(1, unicodeId);
+            ResultSet rs = sql.selectEmojiStatement.executeQuery();
             
             if(rs.next()) {
-                if(rs.next()) {
-                    System.out.println("****ERROR: TWO OR MORE ENTITY ROWS RETURNED ******");
+                if(!rs.isLast()) {
+                    System.out.println("****ERROR: TWO OR MORE EMOJI ROWS RETURNED ******");
                 }
-                return rs.getInt("ENTITY_ID");
+                System.out.println("Emoji " + name + " already exists in table.");
             }
             else {
-                System.out.println("no results for: " + entityName + ". Inserting new entity");
-                SQLConnect.insertEntityStatement.setString(1, entityName);
-                SQLConnect.insertEntityStatement.setString(2, wikiUrl);
-                SQLConnect.insertEntityStatement.setString(3, imageUrl);
-                SQLConnect.insertEntityStatement.executeUpdate();
-                ResultSet insertResult = SQLConnect.insertEntityStatement.getGeneratedKeys();
-                long key = -1L;
-                if (insertResult.next()) {
-                   key = insertResult.getLong(1);
-                } else {
-                    System.out.println("ERROR: no key returned from insert entity");
-                }
-                System.out.println("Insert Key: " + key);
-                return (int) key;
+                System.out.println("no results for: " + name + ". Inserting new emoji");
+                sql.insertEmojiStatement.setString(1, unicodeId);
+                sql.insertEmojiStatement.setString(2, name);
+                sql.insertEmojiStatement.setString(3, desc);
+                sql.insertEmojiStatement.setString(4, hex);
+                sql.insertEmojiStatement.executeUpdate();
+                System.out.println("Great success inserting Emoji!");
             }
             
         } catch (SQLException ex) {
@@ -94,9 +85,6 @@ public class SQLBolt extends BaseRichBolt {
             lgr.log(Level.SEVERE, ex.getMessage(), ex);
 
         } 
-
-
-        return -1;
-    }
+    } 
 
 }

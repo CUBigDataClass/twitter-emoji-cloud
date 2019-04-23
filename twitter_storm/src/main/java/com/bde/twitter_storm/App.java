@@ -1,13 +1,6 @@
 package com.bde.twitter_storm;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import com.mysql.cj.jdbc.JdbcStatement;
 
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
@@ -22,29 +15,19 @@ public class App {
         String accessToken = args[2];
         String accessTokenSecret = args[3];
 
-        SQLConnect.setup();
-
-        
-        
         Config config = new Config();
         config.setDebug(false);
 
         TopologyBuilder builder = new TopologyBuilder();
         builder.setSpout("twitter-spout", new TwitterSpout(consumerKey, consumerSecret, accessToken, accessTokenSecret));
-
-        //bolt to strip tweet down to needed fields
-        builder.setBolt("strip-filter-bolt", new TweetStripBolt()).shuffleGrouping("twitter-spout");
-        //bolt to make NLP api call - this is the current rest point of data
-        builder.setBolt("nlp-bolt", new NLPBolt()).shuffleGrouping("strip-filter-bolt");
-        //bolt to make wiki api call
-        builder.setBolt("wiki-thumb-bolt", new WikiThumbBolt()).shuffleGrouping("nlp-bolt");
-        //bolt to story entity and tweet in SQL db
-        builder.setBolt("sql-bolt", new SQLBolt()).shuffleGrouping("wiki-thumb-bolt");
+        // emit all emojis
+        builder.setBolt("all-emoji-bolt", new EmojiBolt()).shuffleGrouping("twitter-spout");
+        // add to sql db
+        builder.setBolt("sql-bolt", new SQLBolt()).shuffleGrouping("all-emoji-bolt");
 
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("Twitter-to-SQL", config, builder.createTopology());
 
-        
         try {
             //how long to run topology - set to 30 secs
             Thread.sleep(10000);
@@ -53,13 +36,5 @@ public class App {
         }
         //shutdown the topology
         cluster.shutdown();
-
-        //close sql db connection
-        try {
-            SQLConnect.con.close();
-        } catch (SQLException e) {
-            System.out.println("con not closed");
-
-        }
     }
 }

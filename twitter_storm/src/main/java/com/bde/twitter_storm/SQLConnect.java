@@ -9,16 +9,16 @@ import com.mysql.cj.jdbc.JdbcStatement;
 
 public class SQLConnect {
 
-    public static Connection con;
-    public static PreparedStatement selectEntityStatement;
-    public static PreparedStatement insertEntityStatement;
-    public static PreparedStatement insertTweetStatement;
+    public Connection con;
+    public PreparedStatement selectEmojiStatement;
+    public PreparedStatement insertEmojiStatement;
+    public PreparedStatement insertTweetStatement;
 
-    public static final String selectEntityString = "select * from ENTITIES where ENTITY_NAME = ?";
-    public static final String insertEntityString = "insert into ENTITIES(ENTITY_NAME, WIKI_URL, WIKI_IMAGE_URL) VALUES (?,?,?)";
-    public static final String insertTweetString = "insert into TWEETS(TWITTER_ID, ENTITY_ID, CREATED_DATETIME) VALUES (?,?,?)";
+    public final String selectEmojiString = "select * from EMOJIS where UNICODE_ID = ?";
+    public final String insertEmojiString = "insert into EMOJIS(UNICODE_ID, EMOJI_NAME, EMOJI_DESC, HTML_HEX_CODE) VALUES (?,?,?,?)";
+    public final String insertTweetString = "insert into TWEETS(TWEET_ID, TWEET_TEXT, UNICODE_ID, TWEET_DATETIME) VALUES (?,?,?,?)";
 
-    public static void setup() {
+    public SQLConnect() {
 
         Map<String, String> env = System.getenv();
         String user = env.get("BDE_SQL_USERNAME");
@@ -26,16 +26,15 @@ public class SQLConnect {
         System.out.println("SQL USER: " + user);
         System.out.println("SQL PASS: " + password);
 
-        String url = "jdbc:mysql://google/DEV?cloudSqlInstance=big-data-energy:us-central1:big-data-energy-mysql&socketFactory=com.google.cloud.sql.mysql.SocketFactory&useSSL=false&user="
-                + user + "&password=" + password;
-
+        String url = "jdbc:mysql://google/EMOJI_CLOUD?cloudSqlInstance=big-data-energy:us-central1:big-data-energy-mysql&socketFactory=com.google.cloud.sql.mysql.SocketFactory&useSSL=false&user="
+                + user + "&password=" + password + "&characterEncoding=UTF-8&connectionCollation=UTF-8";
 
         try {
             con = DriverManager.getConnection(url, user, password);
             System.out.println("Connected to MySQL!");
 
-            selectEntityStatement = con.prepareStatement(selectEntityString);
-            insertEntityStatement = con.prepareStatement(insertEntityString, PreparedStatement.RETURN_GENERATED_KEYS);
+            selectEmojiStatement = con.prepareStatement(selectEmojiString);
+            insertEmojiStatement = con.prepareStatement(insertEmojiString);
             insertTweetStatement = con.prepareStatement(insertTweetString);
 
         } catch (SQLException ex) {
