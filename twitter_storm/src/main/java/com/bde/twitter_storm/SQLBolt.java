@@ -34,7 +34,7 @@ public class SQLBolt extends BaseRichBolt {
         String emojiDescription = input.getStringByField("emoji_description");
         String emojiHtmlHex = input.getStringByField("emoji_html_hex");
         insertEmoji(emojiUnicode, emojiName, emojiDescription, emojiHtmlHex);
-        insertTweet(twitterId, tweetText, emojiUnicode, createdAt);
+        insertTweet(twitterId, tweetText, emojiName, createdAt);
     }
 
     @Override
@@ -42,17 +42,20 @@ public class SQLBolt extends BaseRichBolt {
 
     }
 
-    public void insertTweet(String twitterID, String text, String emojiId, Date date) {
+    public void insertTweet(String twitterID, String text, String emojiName, Date date) {
         try {
             sql.insertTweetStatement.setString(1, twitterID);
             sql.insertTweetStatement.setString(2, text);
-            sql.insertTweetStatement.setString(3, emojiId);
+            sql.insertTweetStatement.setString(3, emojiName);
             sql.insertTweetStatement.setTimestamp(4, new Timestamp(date.getTime()));
             sql.insertTweetStatement.executeUpdate();
             System.out.println("Great success inserting tweet!");
         } catch(SQLException e) {
             System.out.println(e);
-            System.out.println("ERROR INSERTING TWEET");
+            System.out.println("#### ERROR INSERTING TWEET ####");
+            System.out.println(emojiName);
+            System.out.println(text);
+            System.out.println("#### End Error ####");
         }
     }
 
@@ -60,17 +63,17 @@ public class SQLBolt extends BaseRichBolt {
     public void insertEmoji(String unicodeId, String name, String desc, String hex) {
 
         try {
-            sql.selectEmojiStatement.setString(1, unicodeId);
+            sql.selectEmojiStatement.setString(1, name);
             ResultSet rs = sql.selectEmojiStatement.executeQuery();
             
             if(rs.next()) {
                 if(!rs.isLast()) {
                     System.out.println("****ERROR: TWO OR MORE EMOJI ROWS RETURNED ******");
                 }
-                System.out.println("Emoji " + name + " already exists in table.");
+                System.out.println("Emoji " + name + ": " + unicodeId + " already exists in table.");
             }
             else {
-                System.out.println("no results for: " + name + ". Inserting new emoji");
+                System.out.println("no results for: " + name + ": " + unicodeId + ". Inserting new emoji");
                 sql.insertEmojiStatement.setString(1, unicodeId);
                 sql.insertEmojiStatement.setString(2, name);
                 sql.insertEmojiStatement.setString(3, desc);

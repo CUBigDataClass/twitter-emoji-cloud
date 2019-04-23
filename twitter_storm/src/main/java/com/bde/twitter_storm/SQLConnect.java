@@ -14,9 +14,9 @@ public class SQLConnect {
     public PreparedStatement insertEmojiStatement;
     public PreparedStatement insertTweetStatement;
 
-    public final String selectEmojiString = "select * from EMOJIS where UNICODE_ID = ?";
+    public final String selectEmojiString = "select * from EMOJIS where EMOJI_NAME = ?";
     public final String insertEmojiString = "insert into EMOJIS(UNICODE_ID, EMOJI_NAME, EMOJI_DESC, HTML_HEX_CODE) VALUES (?,?,?,?)";
-    public final String insertTweetString = "insert into TWEETS(TWEET_ID, TWEET_TEXT, UNICODE_ID, TWEET_DATETIME) VALUES (?,?,?,?)";
+    public final String insertTweetString = "insert into TWEETS(TWEET_ID, TWEET_TEXT, EMOJI_NAME, TWEET_DATETIME) VALUES (?,?,?,?)";
 
     public SQLConnect() {
 
